@@ -15,7 +15,7 @@ contract RankNftCoC is ERC721URIStorage {
     uint256 private s_tokenCounter;
 
     //events
-    event NftMinted(
+    event RankNftMinted(
         address indexed nftAdress,
         address indexed playerAddress,
         uint256 indexed tokenId,
@@ -52,7 +52,7 @@ contract RankNftCoC is ERC721URIStorage {
 
         s_addressToTokenURI[player][newItemId] = s_rankUris[uint256(rankIndex)];
 
-        emit NftMinted(address(this), player, newItemId, rankIndex);
+        emit RankNftMinted(address(this), player, newItemId, rankIndex);
     }
 
     function getRankTokenUris(uint256 index) public view returns (string memory) {

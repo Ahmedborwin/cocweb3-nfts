@@ -34,7 +34,7 @@ let tokenUris = [
               await deployments.fixture(["lootNft"])
               LootNftContract = await ethers.getContract("LootNftCoC")
               playerContract = LootNftContract.connect(player)
-              txResponse = await LootNftContract.spinLootWheel(signerAddress)
+              txResponse = await LootNftContract.spinWheelRequestNRG(signerAddress)
               txReceipt = await txResponse.wait(1)
               requestId = txReceipt.events[1].args.requestId
           })
@@ -48,7 +48,7 @@ let tokenUris = [
               })
 
               it("Spin lootwheel emits lootWheelspin event", async () => {
-                  expect(await LootNftContract.spinLootWheel(signerAddress)).to.emit(
+                  expect(await LootNftContract.spinWheelRequestNRG(signerAddress)).to.emit(
                       LootNftContract,
                       "lootWheelSpin"
                   )
@@ -107,6 +107,40 @@ let tokenUris = [
                       await mockVRF.fulfillRandomWords(requestId, LootNftContract.address)
                       const tokenURI = await LootNftContract.getLootTokenUris(TokenID)
                       expect(tokenURI == tokenUris[4])
+                  })
+
+                  it("event with token URI array emitted when new NFT minted", async () => {
+                      //manually set moddedrng for testing purposes
+                      await LootNftContract.setTestNrg(98)
+                      //mock VRF coordinator calling address
+                      mockVRF = await ethers.getContract("VRFCoordinatorV2Mock")
+                      // get tokenURI
+
+                      expect(
+                          await mockVRF.fulfillRandomWords(requestId, LootNftContract.address)
+                      ).to.emit(LootNftContract, "AllTokenUrisbyAddress")
+                  })
+
+                  it("Token URI mapping saves list of all tokens owned by address", async () => {
+                      //manually set moddedrng for testing purposes
+                      await LootNftContract.setTestNrg(98)
+                      //mock VRF coordinator calling address
+                      mockVRF = await ethers.getContract("VRFCoordinatorV2Mock")
+                      await mockVRF.fulfillRandomWords(requestId, LootNftContract.address)
+
+                      //run again
+                      txResponse = await LootNftContract.spinWheelRequestNRG(signerAddress)
+                      txReceipt = await txResponse.wait(1)
+                      requestId = txReceipt.events[1].args.requestId
+                      await LootNftContract.setTestNrg(40)
+                      mockVRF = await ethers.getContract("VRFCoordinatorV2Mock")
+                      await mockVRF.fulfillRandomWords(requestId, LootNftContract.address)
+
+                      const AllTokenURIs = await LootNftContract.getNftsOwnedbyPlayer(signerAddress)
+
+                      console.log(AllTokenURIs)
+
+                      expect(AllTokenURIs[1] == tokenUris[0])
                   })
 
                   /// cant get this to work right now

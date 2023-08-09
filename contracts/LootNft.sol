@@ -36,6 +36,7 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
     uint256 private s_tokenCounter;
 
     string[] internal s_LootTokenUris;
+    string[] internal s_LootTokenUrisownedbyPlayer;
 
     bool private s_initialized;
 
@@ -44,10 +45,17 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
     //NFT to address storage mapping
     mapping(address => mapping(uint256 => string)) public s_addressToTokenURI;
+    //All NFT's to address storage mapping
+    mapping(address => string[]) public s_addressToAllTokenURIs;
 
     // Events
-    event lootWheelSpin(uint256 indexed requestId, address player);
-    event NftMinted(uint256 indexed tokenId, address indexed player, address indexed nftAddress);
+    event lootWheelSpin(uint256 indexed requestId, address indexed player);
+    event LootNftMinted(
+        uint256 indexed tokenId,
+        address indexed player,
+        address indexed nftAddress
+    );
+    event AllTokenUrisbyAddress(string[] indexed tokenUris, address indexed player);
     event unSuccesfullSpin(address indexed player);
 
     constructor(
@@ -81,7 +89,7 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
         uint256 moddedRng;
 
-        address player = s_requestIdToSender[requestId];
+        address _player = s_requestIdToSender[requestId];
 
         if (testRng > 0) {
             moddedRng = testRng;
@@ -90,19 +98,28 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
         }
 
         if (moddedRng < 40) {
-            emit unSuccesfullSpin(player);
+            emit unSuccesfullSpin(_player);
         } else {
             uint256 newItemId = s_tokenCounter;
             s_tokenCounter = s_tokenCounter + 1;
 
             Loot lootPrize = _getLootFromModdedRng(moddedRng);
 
-            _safeMint(player, newItemId);
+            //Mint Nft + set token URI
+
+            _safeMint(_player, newItemId);
             _setTokenURI(newItemId, s_LootTokenUris[uint256(lootPrize)]);
 
-            s_addressToTokenURI[player][newItemId] = s_LootTokenUris[uint256(lootPrize)];
+            //Populate mapping of address to tokenId to URI
+            s_addressToTokenURI[_player][newItemId] = s_LootTokenUris[uint256(lootPrize)];
 
-            emit NftMinted(newItemId, player, address(this));
+            // push new token URI to list of tokens owned by address and saved to a mapping
+
+            s_addressToAllTokenURIs[_player].push(s_LootTokenUris[uint256(lootPrize)]);
+
+            emit AllTokenUrisbyAddress(s_addressToAllTokenURIs[_player], _player); // emit string of URIs as indexed event
+
+            emit LootNftMinted(newItemId, _player, address(this));
         }
     }
 
@@ -128,7 +145,14 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
             s_addressToTokenURI[_player][newItemId] = s_LootTokenUris[uint256(lootPrize)];
 
-            emit NftMinted(newItemId, _player, address(this));
+            //populate list of URI's owned by player
+            // push new token URI list of token owned by address and saved to a mapping
+
+            s_addressToAllTokenURIs[_player].push(s_LootTokenUris[uint256(lootPrize)]);
+
+            emit AllTokenUrisbyAddress(s_addressToAllTokenURIs[_player], _player); // emit string of URIs as indexed event
+
+            emit LootNftMinted(newItemId, _player, address(this));
         }
     }
 
@@ -193,5 +217,9 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
         uint256 tokenId
     ) external view returns (string memory) {
         return s_addressToTokenURI[player][tokenId];
+    }
+
+    function getNftsOwnedbyPlayer(address player) external view returns (string[] memory) {
+        return s_addressToAllTokenURIs[player];
     }
 }
