@@ -6,11 +6,16 @@ const { storeImages, storeTokenUriMetadata } = require("../utils/uploadToPinata"
 const imagesLocation = "images"
 
 let tokenUris = [
-    "ipfs://QmU67Zx2kZrhMCyKsRq4F3QsquVSg1aYgb8acQMc4RMd6C",
-    "ipfs://QmVdPkP1XzY7XL4vKnCzyhPKabBXomzSanXsPTSTqBWmbH",
-    "ipfs://QmVgJZPKo85pxDoe3PFVWpxrzTUw78mEYUhiBcMDoNcz6y",
-    "ipfs://QmbA8cp3UeH2Mvpg2r674szQBk66Bqi7xK5MrhX7qYRad6",
-    "ipfs://QmaB56oDZR21y1D1TdXNEf7VMDUWFJEK6Po1dN6vzzinwn",
+    "ipfs://QmRhAM7ioVhw7c195R4KcjSoKrGWQiSvsBha64NhEPpkr1",
+    "ipfs://QmWiBZNhSCnkf9M7nYVRnFjoG3DxZnkhzJ1tqeuGN9drYk",
+    "ipfs://QmTjQKWjkC6yTT4KqbJyqiWKAqkewMY3hZNrJMQQmFEw7V",
+    "ipfs://QmbZnZYR8JofQrPU6AnHgJSb4hgDT9Wa72BMEApw7MN1kr",
+    "ipfs://QmVqNqTEN5xZLTj2XxuYPkwFQdHNokwsEZG74Bp9GjvVQd",
+    "ipfs://QmZTeedRh5XDSEHxANZKgQAgYYZqm1Wx3f1FyVNyRtLz3S",
+    "ipfs://QmY6stzBnW2r9KyHyHejk6xtoP3KY1WyL6Je5jMcfVwcSo",
+    "ipfs://QmTfbVwkNZXzRdThiDeSTUEcyVfzAnHivhtB9b1jCqScM9",
+    "ipfs://QmYH4KiJVW2AiVu4wJCQoqZciezFtqjvvoUDK2Vk5mjB5e",
+    "ipfs://QmWfoWciJEHx43ztnw2svEGhxWubZ4FY2rB9obRreqCA17",
 ]
 
 const metadataTemplate = {
@@ -33,7 +38,7 @@ module.exports = async ({ deployments, namedAccounts }) => {
 
     const chainId = network.config.chainId
 
-    if (process.env.UPLOAD_TO_PINATA == "true" && !tokenUris) {
+    if (process.env.UPLOAD_TO_PINATA == "true") {
         tokenUris = await handleTokenUris()
     }
 

@@ -1,29 +1,35 @@
 const { ethers, network } = require("hardhat")
 const fs = require("fs")
 
-// const FRONT_END_ADDRESSES_FILE = "../cocweb3-frontend/constants/contractAddresses.json"
-// const FRONT_END_ABI_FILE = "../cocweb3-frontend/constants/abi.json"
+// write data to front end
+const RANK_FRONTEND_ADDRESSES_FILE = "../cocweb3-frontendV2/constants/RankContractAddress.json"
+const RANK_FRONTEND_ABI_FILE = "../cocweb3-frontendV2/constants/Rankabi.json"
 
-const COC_GAME_Rank_ADDRESSES_FILE = "../CodeOfConflict-V2/constants/RankNft/contractAddresses.json"
-const COC_GAME_Rank_ABI_FILE = "../CodeOfConflict-V2/constants/RankNft/abi.json"
+const LOOT_FRONTEND_ADDRESSES_FILE = "../cocweb3-frontendV2/constants/LootcontractAddress.json"
+const LOOT_FRONTEND_ABI_FILE = "../cocweb3-frontendV2/constants/Lootabi.json"
 
-const COC_GAME_Loot_ADDRESSES_FILE = "../CodeOfConflict-V2/constants/LootNft/contractAddresses.json"
-const COC_GAME_Loot_ABI_FILE = "../CodeOfConflict-V2/constants/LootNft/abi.json"
+//write data to game contract
+const RANK_GAME_ADDRESSES_FILE = "../CodeOfConflict-V2/constants/RankContractAddress.json"
+const RANK_GAME_ABI_FILE = "../CodeOfConflict-V2/constants/Rankabi.json"
+
+const LOOT_GAME_ADDRESSES_FILE = "../CodeOfConflict-V2/constants/LootContractAddress.json"
+const LOOT_GAME_ABI_FILE = "../CodeOfConflict-V2/constants/Lootabi.json"
 
 module.exports = async () => {
     if (process.env.UPDATE_FRONT_END) {
         //console.log("<<<<<<<<<<<<<<<<UPDATING FRONT END>>>>>>>>>>>>>>>>")
         await LootNftupdateContractAddresses()
+        await LootNftUpdateAbi()
         await RankNftupdateContractAddresses()
         await RankNftUpdateAbi()
-        await LootNftUpdateAbi()
     }
 }
 
 async function RankNftUpdateAbi() {
     const RankNft = await ethers.getContract("RankNftCoC")
+    //update front end
     fs.writeFileSync(
-        COC_GAME_Rank_ABI_FILE,
+        RANK_FRONTEND_ABI_FILE,
         RankNft.interface.format(ethers.utils.FormatTypes.json)
     )
 }
@@ -31,7 +37,7 @@ async function RankNftUpdateAbi() {
 async function LootNftUpdateAbi() {
     const LootNft = await ethers.getContract("LootNftCoC")
     fs.writeFileSync(
-        COC_GAME_Loot_ABI_FILE,
+        LOOT_FRONTEND_ABI_FILE,
         LootNft.interface.format(ethers.utils.FormatTypes.json)
     )
 }
@@ -42,15 +48,29 @@ async function RankNftupdateContractAddresses() {
     //amend the contract address on our addresses json file
     const chainId = network.config.chainId.toString()
 
-    const currentAddresses = JSON.parse(fs.readFileSync(COC_GAME_Rank_ADDRESSES_FILE, "utf8"))
+    //write to frontend
+    const currentAddresses = JSON.parse(fs.readFileSync(RANK_FRONTEND_ADDRESSES_FILE, "utf8"))
     if (chainId in currentAddresses) {
         if (!currentAddresses[chainId].includes(RankNft.address)) {
-            currentAddresses[chainId].push(RankNft.address)
+            currentAddresses[chainId].pop(RankNft.address)
         }
     } else {
         currentAddresses[chainId] = [RankNft.address]
     }
-    fs.writeFileSync(COC_GAME_Rank_ADDRESSES_FILE, JSON.stringify(currentAddresses))
+    fs.writeFileSync(RANK_FRONTEND_ADDRESSES_FILE, JSON.stringify(currentAddresses))
+
+    //write to game contract
+
+    //write to frontend
+    const currentAddressesGame = JSON.parse(fs.readFileSync(RANK_GAME_ADDRESSES_FILE, "utf8"))
+    if (chainId in currentAddressesGame) {
+        if (!currentAddressesGame[chainId].includes(RankNft.address)) {
+            currentAddressesGame[chainId].pop(RankNft.address)
+        }
+    } else {
+        currentAddressesGame[chainId] = [RankNft.address]
+    }
+    fs.writeFileSync(RANK_GAME_ADDRESSES_FILE, JSON.stringify(currentAddressesGame))
 }
 
 async function LootNftupdateContractAddresses() {
@@ -58,15 +78,28 @@ async function LootNftupdateContractAddresses() {
 
     //amend the contract address on our addresses json file
     const chainId = network.config.chainId.toString()
-    const currentAddresses = JSON.parse(fs.readFileSync(COC_GAME_Loot_ADDRESSES_FILE, "utf8"))
+
+    //write to front end
+    const currentAddresses = JSON.parse(fs.readFileSync(LOOT_GAME_ADDRESSES_FILE, "utf8"))
     if (chainId in currentAddresses) {
         if (!currentAddresses[chainId].includes(LootNft.address)) {
-            currentAddresses[chainId].push(LootNft.address)
+            currentAddresses[chainId].pop(LootNft.address)
         }
     } else {
         currentAddresses[chainId] = [LootNft.address]
     }
-    fs.writeFileSync(COC_GAME_Loot_ADDRESSES_FILE, JSON.stringify(currentAddresses))
+    fs.writeFileSync(LOOT_GAME_ADDRESSES_FILE, JSON.stringify(currentAddresses))
+
+    //write to game contract
+    const currentAddressesGame = JSON.parse(fs.readFileSync(LOOT_GAME_ADDRESSES_FILE, "utf8"))
+    if (chainId in currentAddressesGame) {
+        if (!currentAddressesGame[chainId].includes(LootNft.address)) {
+            currentAddressesGame[chainId].pop(LootNft.address)
+        }
+    } else {
+        currentAddressesGame[chainId] = [LootNft.address]
+    }
+    fs.writeFileSync(LOOT_GAME_ADDRESSES_FILE, JSON.stringify(currentAddressesGame))
 }
 
 module.exports.tags = ["all", "update"]

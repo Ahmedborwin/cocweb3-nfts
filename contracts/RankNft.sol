@@ -25,11 +25,11 @@ contract RankNftCoC is ERC721URIStorage {
     //NFT to address storage mapping
     mapping(address => mapping(uint256 => string)) public s_addressToTokenURI;
 
-    constructor(string[5] memory _s_rankUris) ERC721("Rank Emblem", "CoC-RankNFT") {
+    constructor(string[10] memory _s_rankUris) ERC721("Rank Emblem", "CoC-RankNFT") {
         _initializeContract(_s_rankUris);
     }
 
-    function _initializeContract(string[5] memory rankUris) private {
+    function _initializeContract(string[10] memory rankUris) private {
         if (s_initialized) {
             revert CoCRankNft__AlreadyInitialized();
         }
@@ -55,14 +55,7 @@ contract RankNftCoC is ERC721URIStorage {
         emit RankNftMinted(address(this), player, newItemId, rankIndex);
     }
 
-    function getRankTokenUris(uint256 index) public view returns (string memory) {
-        return s_rankUris[index];
-    }
-
-    function getTokenURIfromPlayerId(
-        address player,
-        uint256 tokenId
-    ) external view returns (string memory) {
-        return s_addressToTokenURI[player][tokenId];
+    function getRankTokenUris(uint256 rankIndex) external view returns (string memory) {
+        return s_rankUris[rankIndex];
     }
 }

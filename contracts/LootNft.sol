@@ -31,7 +31,6 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
     uint32 private constant NUM_WORDS = 5;
 
     // NFT Variables
-    uint256 internal testRng = 0;
     uint256 internal constant MAX_CHANCE_VALUE = 100;
     uint256 private s_tokenCounter;
 
@@ -49,12 +48,8 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
     mapping(address => string[]) public s_addressToAllTokenURIs;
 
     // Events
-    event lootWheelSpin(uint256 indexed requestId, address indexed player);
-    event LootNftMinted(
-        uint256 indexed tokenId,
-        address indexed player,
-        address indexed nftAddress
-    );
+    event LootVRFCall(uint256 indexed requestId, address indexed player);
+    event LootNftMinted(address indexed player, string indexed TokenURI);
     event AllTokenUrisbyAddress(string[] indexed tokenUris, address indexed player);
     event unSuccesfullSpin(address indexed player);
 
@@ -83,7 +78,7 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
         );
 
         s_requestIdToSender[requestId] = _player;
-        emit lootWheelSpin(requestId, _player);
+        emit LootVRFCall(requestId, _player);
     }
 
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
@@ -91,22 +86,23 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
         address _player = s_requestIdToSender[requestId];
 
-        if (testRng > 0) {
-            moddedRng = testRng;
-        } else {
-            moddedRng = randomWords[0] % MAX_CHANCE_VALUE;
-        }
+        // for testing purposes allowed owner to set manually RNG 0-100
+        //if not set then random number picked using chainlink VRF
 
+        moddedRng = randomWords[0] % MAX_CHANCE_VALUE;
+
+        // if random number is higher than 40 or higher then spin succesfull
         if (moddedRng < 40) {
             emit unSuccesfullSpin(_player);
         } else {
+            //set counter to interim variable then increment
             uint256 newItemId = s_tokenCounter;
             s_tokenCounter = s_tokenCounter + 1;
 
+            // variable returns loot index based on success chances assigned by dev
             Loot lootPrize = _getLootFromModdedRng(moddedRng);
 
             //Mint Nft + set token URI
-
             _safeMint(_player, newItemId);
             _setTokenURI(newItemId, s_LootTokenUris[uint256(lootPrize)]);
 
@@ -117,28 +113,20 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
             s_addressToAllTokenURIs[_player].push(s_LootTokenUris[uint256(lootPrize)]);
 
-            emit AllTokenUrisbyAddress(s_addressToAllTokenURIs[_player], _player); // emit string of URIs as indexed event
+            emit LootNftMinted(_player, s_LootTokenUris[uint256(lootPrize)]);
 
-            emit LootNftMinted(newItemId, _player, address(this));
+            emit AllTokenUrisbyAddress(s_addressToAllTokenURIs[_player], _player); // emit string of URIs as indexed event
         }
     }
 
     function LootWheelSpinFromGameContract(address _player, uint256 _randomNumber) external {
-        uint256 moddedRng;
-
-        if (testRng > 0) {
-            moddedRng = testRng;
-        } else {
-            moddedRng = _randomNumber;
-        }
-
-        if (moddedRng < 40) {
+        if (_randomNumber < 40) {
             emit unSuccesfullSpin(_player);
         } else {
             uint256 newItemId = s_tokenCounter;
             s_tokenCounter = s_tokenCounter + 1;
 
-            Loot lootPrize = _getLootFromModdedRng(moddedRng);
+            Loot lootPrize = _getLootFromModdedRng(_randomNumber);
 
             _safeMint(_player, newItemId);
             _setTokenURI(newItemId, s_LootTokenUris[uint256(lootPrize)]);
@@ -152,31 +140,34 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
             emit AllTokenUrisbyAddress(s_addressToAllTokenURIs[_player], _player); // emit string of URIs as indexed event
 
-            emit LootNftMinted(newItemId, _player, address(this));
+            emit LootNftMinted(_player, s_LootTokenUris[uint256(lootPrize)]);
         }
     }
 
+    /**
+     * 
+     * @param moddedRng value 1-100 used to randomly pick NFT to mint
+     * chances are:
+     *  Empty spin = 0-19 (40%)
+        gun = 20-49 (24%)
+        shield = 50 - 74 (15%)
+        grendade = 75 - 89 (10%)
+        Tank = 90-97 (7%)
+        plane = 98-100 (3%)
+     * 
+     * 
+     */
+
     function _getLootFromModdedRng(uint256 moddedRng) internal pure returns (Loot) {
         uint256 cumulativeSum = 0;
-        uint8[5] memory chanceArray = _getChanceArray();
+        uint8[5] memory chanceArray = [20, 50, 75, 90, 98];
         for (uint256 i = 0; i < chanceArray.length; i++) {
-            //Empty spin = 0-19 (40%)
-            // gun = 20-49 (24%)
-            // shield = 50 - 74 (15%)
-            // grendade = 75 - 89 (10%)
-            // Tank = 90-97 (7%)
-            // plane = 98-100 (3%)
-
             if (moddedRng >= cumulativeSum && moddedRng < chanceArray[i]) {
                 return Loot(i);
             }
             cumulativeSum = chanceArray[i];
         }
         revert CoCLootNft__RangeOutOfBounds();
-    }
-
-    function _getChanceArray() internal pure returns (uint8[5] memory) {
-        return [20, 50, 75, 90, 98];
     }
 
     function _initializeContract(string[5] memory LogTokenUris) private {
@@ -196,10 +187,6 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
         transferOwnership(_newOwner); // function from ownable, only Owner modifier assigned to function on ownable contract
     }
 
-    function setTestNrg(uint256 _nrgSet) external onlyOwner {
-        testRng = _nrgSet; // set nrg
-    }
-
     function getTokenCounter() external view returns (uint256) {
         return s_tokenCounter;
     }
@@ -210,13 +197,6 @@ contract LootNftCoC is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
     function getLootTokenUris(uint256 index) public view returns (string memory) {
         return s_LootTokenUris[index];
-    }
-
-    function getTokenURIfromPlayerId(
-        address player,
-        uint256 tokenId
-    ) external view returns (string memory) {
-        return s_addressToTokenURI[player][tokenId];
     }
 
     function getNftsOwnedbyPlayer(address player) external view returns (string[] memory) {
